@@ -6,6 +6,14 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
+  <!-- Top navigation bar -->
+  <div class="topnav">
+    <a href="{{ url_for('productos') }}">Productos</a>
+    <a href="{{ url_for('comprar') }}">Comprar</a>
+    <a href="{{ url_for('ordenes') }}" class="active">Ver Compras</a>
+    <a href="{{ url_for('logout') }}" style="float:right">Cerrar sesión</a>
+  </div>
+
   <h1>Órdenes Realizadas</h1>
   
   {% for p_order_id, data in orders.items() %}

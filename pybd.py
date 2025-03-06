@@ -2,7 +2,9 @@ import os
 from dotenv import load_dotenv
 import pyodbc
 
-load_dotenv()
+if os.environ.get('TYPE') != 'PROD':
+    print('executing in dev mode')
+    load_dotenv()
 
 # Obtener datos de conexión desde el entorno
 host = os.environ.get('DB_HOST')

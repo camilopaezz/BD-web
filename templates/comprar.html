@@ -6,11 +6,20 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
+  <!-- Top navigation bar -->
+  <div class="topnav">
+    <a href="{{ url_for('productos') }}">Productos</a>
+    <a href="{{ url_for('comprar') }}" class="active">Comprar</a>
+    <a href="{{ url_for('ordenes') }}">Ver Compras</a>
+    <a href="{{ url_for('logout') }}" style="float:right">Cerrar sesión</a>
+  </div>
+
   <h1>Crear Orden</h1>
   
   <form method="GET" action="{{ url_for('comprar') }}">
     <input type="text" name="search" placeholder="Buscar producto..." value="{{ search }}">
     <button type="submit">Buscar</button>
+    <input type="hidden" name="page" value="1">
   </form>
   
   <h2>Datos del Cliente</h2>
@@ -56,6 +65,8 @@
               <form method="POST" style="display:inline;">
                 <input type="hidden" name="add_product">
                 <input type="hidden" name="product_id" value="{{ prod[0] }}">
+                <input type="hidden" name="page" value="{{ page }}">
+                <input type="hidden" name="search" value="{{ search }}">
                 <input type="number" name="quantity" value="1" min="1">
                 <button type="submit">Agregar</button>
               </form>
@@ -64,6 +75,19 @@
           {% endfor %}
         </tbody>
       </table>
+
+      <!-- Pagination controls -->
+      <div class="pagination-center">
+        <span>Página {{ page }}</span>
+        {% if has_prev %}
+          <a href="{{ url_for('comprar', page=page-1, search=search) }}">⏪ Anterior</a>
+        {% endif %}
+        {% if has_next %}
+          <a href="{{ url_for('comprar', page=page+1, search=search) }}">Siguiente ⏩</a>
+        {% endif %}
+      </div>
+
+      <p>Total de productos encontrados: {{ total_products }}</p>
     {% endif %}
   {% endif %}
   
@@ -87,7 +111,7 @@
           <td>{{ item['quantity'] }}</td>
           <td>{{ item['price'] * item['quantity'] }}</td>
           <td>
-            <a href="{{ url_for('eliminar_producto', product_id=item['id'], search=search) }}">Eliminar</a>
+            <a href="{{ url_for('eliminar_producto', product_id=item['id'], search=search, page=page) }}">Eliminar</a>
           </td>
         </tr>
         {% endfor %}
@@ -100,11 +124,6 @@
   {% else %}
     <p>No hay productos en el carrito.</p>
   {% endif %}
-  
-  <p>
-    <a href="{{ url_for('productos') }}">Volver a Productos</a> | 
-    <a href="{{ url_for('logout') }}">Cerrar sesión</a>
-  </p>
   
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}

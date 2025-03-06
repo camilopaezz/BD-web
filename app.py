@@ -1,11 +1,12 @@
 import os
 from dotenv import load_dotenv
-import pyodbc
-import uuid
-import datetime
+import mysql.connector
+from mysql.connector import Error
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 
-load_dotenv()
+if os.environ.get('TYPE') != 'PROD':
+    print('executing in dev mode')
+    load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'mi_clave_secreta')
@@ -14,16 +15,18 @@ ADMIN_USER = os.environ.get('ADMIN_USER')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
 
 def get_db_connection():
-    connection_str = (
-        "DRIVER={MySQL ODBC 9.2 ANSI Driver};"
-        f"SERVER={os.environ.get('DB_HOST')};"
-        "PORT=3306;"
-        f"DATABASE={os.environ.get('DB_NAME')};"
-        f"USER={os.environ.get('DB_USER')};"
-        f"PASSWORD={os.environ.get('DB_PASSWORD')};"
-        "OPTION=3;"
-    )
-    return pyodbc.connect(connection_str)
+    try:
+        connection = mysql.connector.connect(
+            host=os.environ.get('DB_HOST'),
+            port=3306,
+            database=os.environ.get('DB_NAME'),
+            user=os.environ.get('DB_USER'),
+            password=os.environ.get('DB_PASSWORD')
+        )
+        return connection
+    except Error as e:
+        print(f"Error connecting to MySQL database: {e}")
+        return None
 
 @app.route('/')
 def index():
@@ -57,9 +60,13 @@ def productos():
     per_page = 50
     offset = (page - 1) * per_page
     conn = get_db_connection()
+    if not conn:
+        flash("Error de conexión a la base de datos", "danger")
+        return redirect(url_for('login'))
+    
     cursor = conn.cursor()
     if search:
-        cursor.execute("SELECT COUNT(*) FROM Products WHERE name LIKE ?", ('%' + search + '%',))
+        cursor.execute("SELECT COUNT(*) FROM Products WHERE name LIKE %s", ('%' + search + '%',))
     else:
         cursor.execute("SELECT COUNT(*) FROM Products")
     total_rows = cursor.fetchone()[0]
@@ -68,9 +75,9 @@ def productos():
             SELECT p.product_id, p.name, p.price, s.*
             FROM Products p
             LEFT JOIN Specs s ON p.spec_id = s.spec_id
-            WHERE p.name LIKE ?
+            WHERE p.name LIKE %s
             ORDER BY p.product_id
-            LIMIT ? OFFSET ?
+            LIMIT %s OFFSET %s
         """
         cursor.execute(query, ('%' + search + '%', per_page, offset))
     else:
@@ -79,7 +86,7 @@ def productos():
             FROM Products p
             LEFT JOIN Specs s ON p.spec_id = s.spec_id
             ORDER BY p.product_id
-            LIMIT ? OFFSET ?
+            LIMIT %s OFFSET %s
         """
         cursor.execute(query, (per_page, offset))
     columns = [desc[0] for desc in cursor.description]
@@ -131,15 +138,20 @@ def comprar():
                 'address': request.form.get('client_address')
             }
             flash("Datos del cliente guardados.", "success")
-            return redirect(url_for('comprar', search=request.args.get('search', '')))
+            return redirect(url_for('comprar', search=request.args.get('search', ''), page=request.args.get('page', 1)))
         elif 'add_product' in request.form:
             product_id = request.form.get('product_id')
             quantity = int(request.form.get('quantity', 0))
-            search = request.args.get('search', '')
+            search = request.form.get('search', '')
+            page = request.form.get('page', 1, type=int)
             if quantity > 0:
                 conn = get_db_connection()
+                if not conn:
+                    flash("Error de conexión a la base de datos", "danger")
+                    return redirect(url_for('comprar', search=search, page=page))
+                    
                 cursor = conn.cursor()
-                cursor.execute("SELECT product_id, name, price FROM Products WHERE product_id = ?", (product_id,))
+                cursor.execute("SELECT product_id, name, price FROM Products WHERE product_id = %s", (product_id,))
                 product = cursor.fetchone()
                 if product:
                     session['cart'].append({
@@ -152,33 +164,34 @@ def comprar():
                     flash(f"Producto {product[1]} agregado al carrito.", "success")
                 cursor.close()
                 conn.close()
-            return redirect(url_for('comprar', search=search))
+            return redirect(url_for('comprar', search=search, page=page))
         elif 'finalizar_compra' in request.form:
             if not session['cart']:
                 flash("No hay productos en el carrito.", "warning")
-                return redirect(url_for('comprar', search=request.args.get('search', '')))
+                return redirect(url_for('comprar', search=request.args.get('search', ''), page=request.args.get('page', 1)))
             client = session['client_info']
             conn = get_db_connection()
+            if not conn:
+                flash("Error de conexión a la base de datos", "danger")
+                return redirect(url_for('comprar', search=request.args.get('search', ''), page=request.args.get('page', 1)))
+                
             cursor = conn.cursor()
             try:
                 cursor.execute("""
                     INSERT INTO Clients (name, phone, email, address)
-                    VALUES (?, ?, ?, ?)
+                    VALUES (%s, %s, %s, %s)
                 """, (client['name'], client['phone'], client['email'], client['address']))
                 conn.commit()
                 cursor.execute("SELECT LAST_INSERT_ID()")
                 client_id = cursor.fetchone()[0]
                 
-                p_order_id = str(uuid.uuid4())
                 for item in session['cart']:
                     product_id = item['id']
                     quantity = item['quantity']
-                    total = item['price'] * quantity
-                    created_at = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                     cursor.execute("""
-                        INSERT INTO Orders (p_order_id, client_id, product_id, quantity, total, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    """, (p_order_id, client_id, product_id, quantity, total, created_at))
+                        INSERT INTO Orders (client_id, product_id, quantity)
+                        VALUES (%s, %s, %s)
+                    """, (client_id, product_id, quantity))
                 conn.commit()
                 flash("Compra realizada exitosamente.", "success")
                 session['cart'] = []
@@ -186,32 +199,74 @@ def comprar():
             except Exception as e:
                 conn.rollback()
                 flash("Error al crear la orden: " + str(e), "danger")
-                return redirect(url_for('comprar', search=request.args.get('search', '')))
+                return redirect(url_for('comprar', search=request.args.get('search', ''), page=request.args.get('page', 1)))
             finally:
                 cursor.close()
-                conn.close()
+                if conn.is_connected():
+                    conn.close()
     else:
         search = request.args.get('search', '')
+        page = request.args.get('page', 1, type=int)
+        per_page = 10  # Define items per page
         products = []
+        total_products = 0
+        has_prev = False
+        has_next = False
+        
         if search:
             conn = get_db_connection()
+            if not conn:
+                flash("Error de conexión a la base de datos", "danger")
+                return render_template('comprar.html',
+                                      products=[],
+                                      search=search,
+                                      cart=session['cart'],
+                                      client_info=session['client_info'],
+                                      page=page,
+                                      has_prev=has_prev,
+                                      has_next=has_next,
+                                      total_products=total_products)
+                                    
             cursor = conn.cursor()
-            cursor.execute("SELECT product_id, name, price FROM Products WHERE name LIKE ?", ('%' + search + '%',))
+            
+            # Count total products matching search
+            cursor.execute("SELECT COUNT(*) FROM Products WHERE name LIKE %s", ('%' + search + '%',))
+            total_products = cursor.fetchone()[0]
+            
+            # Calculate offset for pagination
+            offset = (page - 1) * per_page
+            
+            # Get paginated products
+            cursor.execute(
+                "SELECT product_id, name, price FROM Products WHERE name LIKE %s LIMIT %s OFFSET %s",
+                ('%' + search + '%', per_page, offset)
+            )
             products = cursor.fetchall()
             cursor.close()
             conn.close()
+            
+            # Determine if there are previous/next pages
+            has_prev = page > 1
+            has_next = total_products > (page * per_page)
+        
         return render_template('comprar.html',
                                products=products,
                                search=search,
                                cart=session['cart'],
-                               client_info=session['client_info'])
+                               client_info=session['client_info'],
+                               page=page,
+                               has_prev=has_prev,
+                               has_next=has_next,
+                               total_products=total_products)
 
 @app.route('/eliminar_producto/<int:product_id>')
 def eliminar_producto(product_id):
+    search = request.args.get('search', '')
+    page = request.args.get('page', 1, type=int)
     session['cart'] = [p for p in session['cart'] if p['id'] != product_id]
     session.modified = True
     flash("Producto eliminado del carrito.", "success")
-    return redirect(url_for('comprar', search=request.args.get('search', '')))
+    return redirect(url_for('comprar', search=search, page=page))
 
 @app.route('/ordenes')
 def ordenes():
@@ -220,6 +275,10 @@ def ordenes():
         return redirect(url_for('login'))
     
     conn = get_db_connection()
+    if not conn:
+        flash("Error de conexión a la base de datos", "danger")
+        return redirect(url_for('login'))
+        
     cursor = conn.cursor()
     query = """
         SELECT 
