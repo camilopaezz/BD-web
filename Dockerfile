@@ -19,8 +19,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY ./pyproject.toml ./poetry.lock* /app/
 COPY ./static /app/static/
 COPY ./templates /app/templates/
-COPY ./routes /app/routes/
-COPY ./models /app/models/
 COPY ./*.py /app/
 
 # Install Python dependencies
