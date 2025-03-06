@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Lista de Productos</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <h1>Lista de Productos</h1>
+  
+  <form method="GET" action="{{ url_for('productos') }}">
+    <input type="text" name="search" placeholder="Buscar por nombre..." value="{{ search }}">
+    <button type="submit">Buscar</button>
+  </form>
+  
+  <table border="1">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>Precio</th>
+        <th>Especificaciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in productos %}
+      <tr>
+        <td>{{ p[0] }}</td>
+        <td>{{ p[1] }}</td>
+        <td>{{ p[2] }}</td>
+        <td>{{ p[3] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  
+  <div>
+    <span>Página {{ page }}</span>
+    {% if has_prev %}
+      <a href="{{ url_for('productos', page=page-1, search=search) }}">⏪ Anterior</a>
+    {% endif %}
+    {% if has_next %}
+      <a href="{{ url_for('productos', page=page+1, search=search) }}">Siguiente ⏩</a>
+    {% endif %}
+  </div>
+  
+  <p>Total de productos: {{ total_rows }}</p>
+  <p>
+    <a href="{{ url_for('comprar') }}">Comprar</a> | 
+    <a href="{{ url_for('ordenes') }}">Ver Compras</a> | 
+    <a href="{{ url_for('logout') }}">Cerrar sesión</a>
+  </p>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <ul>
+        {% for category, message in messages %}
+          <li class="{{ category }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+</body>
+</html>

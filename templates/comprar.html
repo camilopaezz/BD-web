@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Crear Orden de Compra</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <h1>Crear Orden</h1>
+  
+  <form method="GET" action="{{ url_for('comprar') }}">
+    <input type="text" name="search" placeholder="Buscar producto..." value="{{ search }}">
+    <button type="submit">Buscar</button>
+  </form>
+  
+  <h2>Datos del Cliente</h2>
+  <form method="POST">
+    <input type="hidden" name="save_client">
+    <label for="client_name">Nombre:</label>
+    <input type="text" name="client_name" value="{{ client_info.get('name', '') }}" required><br><br>
+    
+    <label for="client_phone">Teléfono:</label>
+    <input type="text" name="client_phone" value="{{ client_info.get('phone', '') }}" required><br><br>
+    
+    <label for="client_email">Email:</label>
+    <input type="email" name="client_email" value="{{ client_info.get('email', '') }}" required><br><br>
+    
+    <label for="client_address">Dirección:</label>
+    <input type="text" name="client_address" value="{{ client_info.get('address', '') }}" required><br><br>
+    
+    <button type="submit">Guardar Datos</button>
+  </form>
+  
+  {% if search %}
+    {% if products|length == 0 %}
+      <p>No se encontraron productos para "{{ search }}".</p>
+    {% else %}
+      <h2>Productos Encontrados</h2>
+      <table border="1">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Precio</th>
+            <th>Cantidad</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for prod in products %}
+          <tr>
+            <td>{{ prod[0] }}</td>
+            <td>{{ prod[1] }}</td>
+            <td>{{ prod[2] }}</td>
+            <td>
+              <form method="POST" style="display:inline;">
+                <input type="hidden" name="add_product">
+                <input type="hidden" name="product_id" value="{{ prod[0] }}">
+                <input type="number" name="quantity" value="1" min="1">
+                <button type="submit">Agregar</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  {% endif %}
+  
+  <h2>Carrito de Compras</h2>
+  {% if cart %}
+    <table border="1">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Precio</th>
+          <th>Cantidad</th>
+          <th>Subtotal</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in cart %}
+        <tr>
+          <td>{{ item['name'] }}</td>
+          <td>{{ item['price'] }}</td>
+          <td>{{ item['quantity'] }}</td>
+          <td>{{ item['price'] * item['quantity'] }}</td>
+          <td>
+            <a href="{{ url_for('eliminar_producto', product_id=item['id'], search=search) }}">Eliminar</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <form method="POST">
+      <input type="hidden" name="finalizar_compra">
+      <button type="submit">Finalizar Compra</button>
+    </form>
+  {% else %}
+    <p>No hay productos en el carrito.</p>
+  {% endif %}
+  
+  <p>
+    <a href="{{ url_for('productos') }}">Volver a Productos</a> | 
+    <a href="{{ url_for('logout') }}">Cerrar sesión</a>
+  </p>
+  
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <ul>
+        {% for category, message in messages %}
+          <li class="{{ category }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+</body>
+</html>

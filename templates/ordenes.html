@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Órdenes Realizadas</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <h1>Órdenes Realizadas</h1>
+  
+  {% for p_order_id, data in orders.items() %}
+    <h2>Orden: {{ p_order_id }}</h2>
+    <p>Cliente: {{ data.client_name }}</p>
+    <p>Fecha: {{ data.created_at }}</p>
+    <table border="1">
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th>Cantidad</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in data['items'] %}
+        <tr>
+          <td>{{ item.product_name }}</td>
+          <td>{{ item.quantity }}</td>
+          <td>{{ item.total }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <hr>
+  {% endfor %}
+  
+  <p>
+    <a href="{{ url_for('comprar') }}">Comprar</a> | 
+    <a href="{{ url_for('productos') }}">Volver a Productos</a> | 
+    <a href="{{ url_for('logout') }}">Cerrar sesión</a>
+  </p>
+  
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <ul>
+        {% for category, message in messages %}
+          <li class="{{ category }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+</body>
+</html>

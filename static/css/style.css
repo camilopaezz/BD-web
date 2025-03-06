@@ -1,0 +1,92 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+  }
+  h1 {
+    color: #444;
+    margin-bottom: 20px;
+  }
+  h2 {
+    color: #555;
+    margin-top: 20px;
+    margin-bottom: 10px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+  }
+  table, th, td {
+    border: 1px solid #ccc;
+  }
+  th, td {
+    padding: 10px;
+    text-align: left;
+  }
+  form {
+    margin-bottom: 20px;
+  }
+  
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="number"] {
+    padding: 8px;
+    width: 300px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  button, a.button {
+    background-color: #5cb85c;
+    color: white;
+    padding: 8px 15px;
+    text-decoration: none;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  button:hover, a.button:hover {
+    background-color: #4cae4c;
+  }
+  
+  a {
+    color: #337ab7;
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  .flash-success {
+    color: #3c763d;
+    background-color: #dff0d8;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+  }
+  .flash-danger {
+    color: #a94442;
+    background-color: #f2dede;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+  }
+  .flash-warning {
+    color: #8a6d3b;
+    background-color: #fcf8e3;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+  }
+  .flash-info {
+    color: #31708f;
+    background-color: #d9edf7;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+  }
+  
