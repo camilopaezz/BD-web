@@ -24,7 +24,7 @@ COPY ./*.py /app/
 # Install Python dependencies
 RUN pip install --no-cache-dir poetry && \
     poetry config virtualenvs.create false && \
-    poetry install --no-interaction --no-ansi --no-dev
+    poetry install --no-interaction --no-ansi
 
 # Expose the port the app runs on
 EXPOSE 5000
